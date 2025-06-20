@@ -1,0 +1,38 @@
+[tool.poetry]
+name = "jrt-python"
+version = "0.1.0"
+description = "A JSON to RDF transformer CLI that maps arbitrary JSON to RDF using heuristics and ontologies."
+authors = ["Mathieu 'Bloodbee' Dufour <mathieu@bloodbee.space>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/bloodbee/jrt-python"
+repository = "https://github.com/bloodbee/jrt-python"
+keywords = ["json", "rdf", "cli", "ontology", "semantic web", "linked data"]
+packages = [{ include = "jrt" }]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+rdflib = "^7.0.0"
+rapidfuzz = "^3.6.1"
+jsonpath-ng = "^1.6.0"
+typer = "^0.16.0"
+
+[poetry.group.dev.dependencies]
+pytest = "^8.2.1"
+black = "^24.4.2"
+isort = "^5.13.2"
+mypy = "^1.10.0"
+
+[tool.poetry.scripts]
+jrt = "jrt.cli:app"
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"
+python_files = "test_*.py"
+testpaths = "spec"
+filterwarnings = [
+    "ignore::pytest.PytestUnraisableExceptionWarning",
+    "ignore::RuntimeWarning",
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning"
+]

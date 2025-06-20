@@ -1,0 +1,10 @@
+{
+	"items": [
+		{
+			"id": "person1",
+			"type": "Person",
+			"name": "Alice",
+			"description": "A developer"
+		}
+	]
+}

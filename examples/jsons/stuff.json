@@ -1,0 +1,15 @@
+{
+    "stuffs": [
+        {
+            "type": "Object",
+            "label": "Kniffe",
+            "beudon": null
+        },
+        {
+            "type": "Teapot",
+            "label": "Magnificent Teapot",
+            "beudon": "Kniffe",
+            "description": "Golden teapot from Russia"
+        }
+    ]
+}
