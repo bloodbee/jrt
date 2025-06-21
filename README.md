@@ -1,7 +1,7 @@
-# JRT‑Python – JSON → RDF Transformer
+# JRT – JSON → RDF Transformer
 
 
-[![Tests](https://img.shields.io/github/actions/workflow/status/bloodbee/jrt-python/tests.yml)](https://github.com/bloodbee/jrt-python/actions/workflows/tests.yml)
+[![Tests](https://img.shields.io/github/actions/workflow/status/bloodbee/jrt/tests.yml)](https://github.com/bloodbee/jrt/actions/workflows/tests.yml)
 [![Pypi](https://img.shields.io/pypi/v/jrt)](https://pypi.org/project/jrt/)
 [![Python version](https://img.shields.io/static/v1?label=Python&message=3.10|3.11&color=blue)](https://www.python.org/downloads/)
 
@@ -27,10 +27,10 @@
 
 ```bash
 # PyPI:
-pip install jrt-python
+pip install jrt
 
 # Or with Poetry:
-poetry add jrt-python
+poetry add jrt
 ```
 
 ### 2 – CLI usage
@@ -72,7 +72,7 @@ print(graph.serialize(format="turtle"))
 ## Development
 
 ```bash
-git clone https://github.com/bloodbee/jrt-python.git
+git clone https://github.com/bloodbee/jrt.git
 cd jrt-python
 poetry install --with dev
 
