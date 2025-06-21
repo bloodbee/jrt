@@ -17,8 +17,8 @@ rapidfuzz = "^3.6.1"
 jsonpath-ng = "^1.6.0"
 typer = "^0.16.0"
 
-[poetry.group.dev.dependencies]
-pytest = "^8.2.1"
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.4.1"
 black = "^24.4.2"
 isort = "^5.13.2"
 mypy = "^1.10.0"

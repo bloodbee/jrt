@@ -10,11 +10,13 @@ from uuid import uuid4, uuid5, NAMESPACE_DNS
 from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF, RDFS, FOAF, SKOS, DCTERMS, DC, OWL, XSD
 
-from .models import Ontology
+from .ontology import Ontology, OntologyResolver
 from .constants import *
-from .loaders import OntologyResolver
 
-NAMESPACE_CATALOGUE = [FOAF, SKOS, DCTERMS, DC, OWL, XSD, RDFS]
+# Namespaces considered for *predicate* resolution (XSD intentionally omitted)
+PREDICATE_NAMESPACES = [FOAF, SKOS, DCTERMS, DC, RDFS]
+# Namespaces considered for *class* resolution (OWL kept)
+CLASS_NAMESPACES = PREDICATE_NAMESPACES + [OWL]
 
 warnings.filterwarnings(
     "ignore", message=r".*is not defined in namespace XSD", category=UserWarning)
@@ -25,15 +27,15 @@ class GraphBuilder:
     def __init__(
         self,
         data: Any,
-        ontologies: Sequence[Ontology] = [],
+        ontologies: Union[Ontology, List[Ontology]],
         base_uri: Namespace = Namespace("http://example.org/resource/")
     ):
-        self.ontologies = ontologies
+        self.ontologies = ontologies if isinstance(ontologies, list) else [ontologies]
         self.base_uri = base_uri
         self.graph = Graph(bind_namespaces="rdflib")
         self.data = data
         self.resolver = OntologyResolver(
-            [o.graph for o in ontologies] if ontologies else []
+            [o.graph for o in self.ontologies] if self.ontologies else []
         )
         self.label_index = {}
 
@@ -47,6 +49,15 @@ class GraphBuilder:
             for onto in self.ontologies:
                 self.graph += onto.graph
         return self.graph
+    
+    @staticmethod
+    def search_public_namespaces(term: str) -> URIRef | None:
+        for ns in NAMESPACE_CATALOGUE:
+            try:
+                return getattr(ns, term)
+            except AttributeError:
+                continue
+        return None
 
     def _materialize(
         self,
@@ -74,38 +85,48 @@ class GraphBuilder:
 
         # -------- list ---------------------------------------------------
         if isinstance(node, list):
-            container_uri = URIRef(f"{self.base_uri}{uuid4()}")
             if parent is not None and key is not None:
-                self.graph.add((parent, self._predicate_uri(key), container_uri))
+                predicate = self._predicate_uri(key)
+                for item in node:
+                    if isinstance(item, Mapping):
+                        child = self._materialize(item,)
+                        self.graph.add((parent, predicate, child))
+                    else:
+                        # primitive element -> literal or linked resource
+                        obj = self._literal_or_link(item, predicate)
+                        self.graph.add((parent, predicate, obj))
+                return parent
+            # top‑level list (rare): just iterate
             for item in node:
-                self._materialize(item, parent=container_uri)
-            return container_uri
+                self._materialize(item, parent=parent, key=key)
+            return parent or URIRef(f"{self.base_uri}{uuid4()}")
 
         # -------- primitive ---------------------------------------------
         if parent is not None and key is not None:
             predicate = self._predicate_uri(key)
-
-            # special case: rdf:type => resolve class first
             if predicate == RDF.type and isinstance(node, str):
-                class_uri = self.resolver.resolve(node) or self._search_public_namespaces(node)
-                obj = class_uri if class_uri else Literal(node)
-                self.graph.add((parent, predicate, obj))
-                return parent
-
-            # Object property handling
-            if self.resolver.is_object_property(predicate) and isinstance(node, str):
-                linked = self.label_index.get(node.lower())
-                if linked is None:
-                    linked = URIRef(f"{self.base_uri}{uuid4()}")
-                    self.graph.add((linked, RDFS.label, Literal(node)))
-                    self.label_index[node.lower()] = linked
-                self.graph.add((parent, predicate, linked))
-                return parent
-
-            # default literal
-            if str(node) not in ['None', None, ""]:
-                self.graph.add((parent, predicate, Literal(node)))
+                class_uri = self.resolver.resolve(node) or self._search_class_namespaces(node)
+                self.graph.add((parent, predicate, class_uri if class_uri else Literal(node)))
+            else:
+                obj = self._literal_or_link(node, predicate)
+                if str(node) not in ['None', None, ""]:
+                    self.graph.add((parent, predicate, obj))
         return parent or URIRef(f"{self.base_uri}{uuid4()}")
+    
+    def _literal_or_link(
+        self,
+        value: Any,
+        predicate: URIRef,
+    ) -> URIRef | Literal:
+        """Return a Literal or link to an existing resource if predicate is object-property."""
+        if isinstance(value, str) and self.resolver.is_object_property(predicate):
+            linked = self.label_index.get(value.lower())
+            if linked is None:
+                linked = URIRef(f"{self.base_uri}{uuid4()}")
+                self.graph.add((linked, RDFS.label, Literal(value)))
+                self.label_index[value.lower()] = linked
+            return linked
+        return Literal(value)
 
     def _subject_uri(self, obj: Mapping[str, Any]) -> URIRef:
         id_key = next((k for k in obj if k.lower() in ID_KEYS), None)
@@ -117,26 +138,26 @@ class GraphBuilder:
         return URIRef(f"{self.base_uri}{uid}")
 
     def _predicate_uri(self, key: str) -> URIRef:
-        k = key.lower()
-        if k in LABEL_KEYS:
+        lkey = key.lower()
+        if lkey in LABEL_KEYS:
             return RDFS.label
-        if k in COMMENT_KEYS:
+        if lkey in COMMENT_KEYS:
             return RDFS.comment
-        if k in TYPE_KEYS:
+        if lkey in TYPE_KEYS:
             return RDF.type
 
-        # 1‑ try ontology resolver
+        # Ontology first
         onto_uri = self.resolver.resolve(key)
         if onto_uri is not None and self.resolver.is_object_property(onto_uri):
             return onto_uri
 
-        # 2‑ try public namespaces
-        ns_uri = self._search_public_namespaces(key)
+        # Public namespace fallback (sans XSD)
+        ns_uri = self._search_predicate_namespaces(key)
         if ns_uri is not None:
             return ns_uri
 
-        # 3‑ fallback to base URI
-        return URIRef(f"{self.base_uri}{k}")
+        # Base namespace fallback
+        return URIRef(f"{self.base_uri}{lkey}")
     
     @staticmethod
     def _extract_label(mapping: Mapping[str, Any]) -> str | None:
@@ -144,12 +165,24 @@ class GraphBuilder:
             if k.lower() in LABEL_KEYS and isinstance(mapping[k], str):
                 return mapping[k]
         return None
+    
+    @staticmethod
+    def _search_predicate_namespaces(term: str) -> URIRef | None:
+        for ns in PREDICATE_NAMESPACES:
+            try:
+                # only return if term exists explicitly in __dict__ (avoid fake attrs)
+                if term in ns.__dict__.get("_Cache", {}):
+                    return getattr(ns, term)
+            except AttributeError:
+                continue
+        return None
 
     @staticmethod
-    def _search_public_namespaces(term: str) -> URIRef | None:
-        for ns in NAMESPACE_CATALOGUE:
+    def _search_class_namespaces(term: str) -> URIRef | None:
+        for ns in CLASS_NAMESPACES:
             try:
-                return getattr(ns, term)
+                if term in ns.__dict__.get("_Cache", {}):
+                    return getattr(ns, term)
             except AttributeError:
                 continue
         return None

@@ -3,8 +3,8 @@ from pathlib import Path
 import logging
 import json
 
-from .loaders import OntologyLoader
-from .builders import GraphBuilder
+from .ontology import OntologyLoader
+from .builder import GraphBuilder
 
 app = typer.Typer(help="JSON to RDF Transformer (JRT)")
 

@@ -1,15 +1,24 @@
-from typing import List, Union, Iterable
+from dataclasses import dataclass
+from typing import List, Union, Iterable, Optional
 from pathlib import Path
 import logging
 from rdflib import Graph, URIRef, Literal
 from rdflib.namespace import RDF, RDFS, OWL
 from collections import defaultdict
-
-from .models import Ontology
+from pathlib import Path
 
 logger = logging.getLogger()
 
+
+@dataclass
+class Ontology:
+    """Dataclass representing an Ontology model with its graph and source."""
+    graph: Graph
+    source: Optional[Path] = None
+
+
 class OntologyLoader:
+    """Load ontologies from file or directory."""
 
     def load(self, source: Path) -> Union[Ontology, List[Ontology]]:
         if source.is_file():
@@ -17,12 +26,18 @@ class OntologyLoader:
         elif source.is_dir():
             return self._load_directory(source)
         else:
-            raise ValueError(f"Source path {source} is neither file nor directory")
-    
+            raise ValueError(
+                f"Source path {source} is neither file nor directory")
+
     @classmethod
-    def merge_ontologies(ontologies: List[Ontology], source: Path = None) -> Ontology:
+    def merge_ontologies(
+        cls,
+        ontologies: Union[Ontology, List[Ontology]],
+        source: Path = None
+    ) -> Ontology:
         merged_graph = Graph()
-        for ontology in ontologies:
+        iterable = ontologies if isinstance(ontologies, list) else [ontologies]
+        for ontology in iterable:
             merged_graph += ontology.graph
         return Ontology(graph=merged_graph, source=source)
 
@@ -30,14 +45,14 @@ class OntologyLoader:
         try:
             g = Graph()
             g.parse(file_path.as_posix())
-            return [Ontology(graph=g, source=file_path)]
+            return Ontology(graph=g, source=file_path)
         except Exception as e:
             logger.error(e)
 
     def _load_directory(self, dir_path: Path) -> List[Ontology]:
         ontologies = []
-        for file in dir_path.glob("*/*"):  # ou "*.xml" ou autre extension selon besoin
-            if file.is_file():
+        for file in dir_path.rglob("*"):
+            if file.is_file() and file.suffix.lower() in [".rdf", ".owl", ".xml"]:
                 ontologies.append(self._load_file(file))
         return [onto for onto in ontologies if onto]
 
