@@ -10,8 +10,12 @@ from jrt.cli import app
 runner = CliRunner()
 
 
-def test_convert_command_with_ontology(json_input, teapot_ontology_file, tmp_path):
-    output = tmp_path / "output.rdf"
+@pytest.mark.parametrize("format_arg, rdflib_format", [
+    ("xml", "xml"),
+    ("ttl", "turtle"),
+])
+def test_convert_command_with_ontology(json_input, teapot_ontology_file, tmp_path, format_arg, rdflib_format):
+    output = tmp_path / f"output.{format_arg}"
 
     result = runner.invoke(
         app,
@@ -20,7 +24,8 @@ def test_convert_command_with_ontology(json_input, teapot_ontology_file, tmp_pat
             str(json_input),
             "--output", str(output),
             "--ontology", str(teapot_ontology_file),
-            "--base-uri", "http://example.org/resource/"
+            "--base-uri", "http://example.org/resource/",
+            "--format", format_arg,
         ]
     )
 
@@ -28,7 +33,7 @@ def test_convert_command_with_ontology(json_input, teapot_ontology_file, tmp_pat
     assert output.exists()
 
     g = Graph()
-    g.parse(output, format="xml")
+    g.parse(output, format=rdflib_format)
 
     # Check that the main subject exists with expected label
     subjects = list(g.subjects(RDFS.label, Literal("Teapot")))
@@ -39,15 +44,20 @@ def test_convert_command_with_ontology(json_input, teapot_ontology_file, tmp_pat
     assert (s, RDF.type, None) in g
 
 
-def test_convert_command_without_ontology(json_input, tmp_path):
-    output = tmp_path / "out.rdf"
+@pytest.mark.parametrize("format_arg, rdflib_format", [
+    ("xml", "xml"),
+    ("ttl", "turtle"),
+])
+def test_convert_command_without_ontology(json_input, tmp_path, format_arg, rdflib_format):
+    output = tmp_path / f"out.{format_arg}"
 
     result = runner.invoke(
         app,
         [
             "convert",
             str(json_input),
-            "--output", str(output)
+            "--output", str(output),
+            "--format", format_arg,
         ]
     )
 
@@ -55,7 +65,7 @@ def test_convert_command_without_ontology(json_input, tmp_path):
     assert output.exists()
 
     g = Graph()
-    g.parse(output, format="xml")
+    g.parse(output, format=rdflib_format)
 
     # Should include the basic RDF structure even without ontology
     subjects = list(g.subjects(RDFS.label, Literal("Teapot")))

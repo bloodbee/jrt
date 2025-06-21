@@ -33,11 +33,12 @@ jrt convert data.json \
   --output dist/data.rdf \
   --ontology path/to/ontologies/file_or_directory \
   --base-uri "http://example.org/resource/"
+  --format ttl
 ```
 
 *--ontology can be a single RDF/OWL file or a directory; all .rdf, .owl, .xml, .ttl files are loaded.*
 
-*Supported output formats (--output extension decides) : xml (default), ttl, nt, json‑ld, etc.*
+*Supported output formats (--format) : xml (default), ttl, nt, json‑ld*
 
 ### 3 – Library usage
 
