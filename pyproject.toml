@@ -13,7 +13,6 @@ packages = [{ include = "jrt" }]
 [tool.poetry.dependencies]
 python = "^3.10"
 rdflib = "^7.0.0"
-rapidfuzz = "^3.6.1"
 jsonpath-ng = "^1.6.0"
 typer = "^0.16.0"
 

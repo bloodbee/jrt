@@ -13,8 +13,7 @@ def convert(
     input: Path = typer.Argument(..., help="JSON input file"),
     output: Path = typer.Option("dist/output.xml", help="RDF output file"),
     base_uri: str = typer.Option("http://example.org/resource/", help="Base URI for RDF resources"),
-    ontology: Path = typer.Option(None, help="RDF/OWL ontology to enrich mapping - could be a file or a directory"),
-    score: int = typer.Option(80, help="Similarity score for the heuristic mapping (0-100)")
+    ontology: Path = typer.Option(None, help="RDF/OWL ontology to enrich mapping - could be a file or a directory")
 ):
     """
     Convert a JSON in RDF/XML.

@@ -31,31 +31,29 @@ poetry add jrt-python
 ```bash
 jrt convert data.json \
   --output dist/data.rdf \
-  --ontology ./ontologies/ \
-  --base-uri "http://example.org/resource/" \
-  --score 85
+  --ontology path/to/ontologies/file_or_directory \
+  --base-uri "http://example.org/resource/"
 ```
 
-- --ontology can be a single RDF/OWL file or a directory; all .rdf, .owl, .xml, .ttl files are loaded.
+*--ontology can be a single RDF/OWL file or a directory; all .rdf, .owl, .xml, .ttl files are loaded.*
 
-- Supported output formats (--output extension decides) : xml (default), ttl, nt, json‑ld, etc.
+*Supported output formats (--output extension decides) : xml (default), ttl, nt, json‑ld, etc.*
 
 ### 3 – Library usage
 
 ```python
 from pathlib import Path
 import json
-from rdflib import Namespace
 from jrt.ontology import OntologyLoader
 from jrt.graph_builder import GraphBuilder
 
 loader = OntologyLoader()
-ontologies = loader.load(Path("./ontologies"))
+ontologies = loader.load(Path("path/to/ontologies"))
 
 data = json.loads(Path("input.json").read_text())
 
 builder = GraphBuilder(data=data, ontologies=ontologies,
-                       base_uri=Namespace("http://example.org/resource/"))
+                       base_uri="http://example.org/resource/")
 
 graph = builder.build()
 print(graph.serialize(format="turtle"))
@@ -66,7 +64,7 @@ print(graph.serialize(format="turtle"))
 ## Development
 
 ```bash
-git clone https://github.com/your‑org/jrt-python.git
+git clone https://github.com/bloodbee/jrt-python.git
 cd jrt-python
 poetry install --with dev
 
@@ -79,7 +77,7 @@ pytest -q
 ## Running the CLI from source
 
 ```bash
-poetry run jrt convert examples/input.json --output examples/out.rdf
+poetry run jrt convert examples/jsons/simple.json --output output.rdf
 ```
 
 ---

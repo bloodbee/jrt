@@ -28,10 +28,10 @@ class GraphBuilder:
         self,
         data: Any,
         ontologies: Union[Ontology, List[Ontology]],
-        base_uri: Namespace = Namespace("http://example.org/resource/")
+        base_uri: Union[str, URIRef, Namespace] = "http://example.org/resource/"
     ):
         self.ontologies = ontologies if isinstance(ontologies, list) else [ontologies]
-        self.base_uri = base_uri
+        self.base_uri = self.__build_base_uri(base_uri)
         self.graph = Graph(bind_namespaces="rdflib")
         self.data = data
         self.resolver = OntologyResolver(
@@ -58,6 +58,14 @@ class GraphBuilder:
             except AttributeError:
                 continue
         return None
+    
+    def __build_base_uri(self, base_uri: Any) -> Namespace:
+        if isinstance(base_uri, str) or isinstance(base_uri, URIRef):
+            return Namespace(base_uri)
+        elif isinstance(base_uri, Namespace):
+            return base_uri
+        else:
+            raise AttributeError('`base_uri` must be either URIRef, str or Namespace')
 
     def _materialize(
         self,
