@@ -1,7 +1,8 @@
 # JRT‑Python – JSON → RDF Transformer
 
 
-[![Pypi](https://img.shields.io/pypi/v/jrt)](https://pypi.org/project/jrt/)
+[![Tests](https://img.shields.io/github/actions/workflow/status/bloodbee/jrt-python/Tests
+)](https://github.com/bloodbee/jrt-python/actions/workflows/tests.yml)
 
 [![Pypi](https://img.shields.io/pypi/v/jrt)](https://pypi.org/project/jrt/)
 
