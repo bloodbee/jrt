@@ -1,6 +1,15 @@
 # JRT‑Python – JSON → RDF Transformer
 
+
+[![Pypi](https://img.shields.io/pypi/v/jrt)](https://pypi.org/project/jrt/)
+
+[![Pypi](https://img.shields.io/pypi/v/jrt)](https://pypi.org/project/jrt/)
+
+[![Python version](https://img.shields.io/static/v1?label=Python&message=3.10|3.11&color=blue)](https://www.python.org/downloads/)
+
 > Convert any JSON document to RDF/XML (or other RDF serializations) from the command line or as a library, while automatically leveraging OWL/RDFS ontologies you supply.
+
+
 
 ---
 
