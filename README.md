@@ -7,8 +7,6 @@
 
 > Convert any JSON document to RDF/XML (or other RDF serializations) from the command line or as a library, while automatically leveraging OWL/RDFS ontologies you supply.
 
-
-
 ---
 
 ## Features
@@ -53,7 +51,7 @@ jrt convert data.json \
 from pathlib import Path
 import json
 from jrt.ontology import OntologyLoader
-from jrt.graph_builder import GraphBuilder
+from jrt.builder import GraphBuilder
 
 loader = OntologyLoader()
 ontologies = loader.load(Path("path/to/ontologies"))
