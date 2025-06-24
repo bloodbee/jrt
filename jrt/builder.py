@@ -27,11 +27,11 @@ class GraphBuilder:
     def __init__(
         self,
         data: Any,
-        ontologies: Union[Ontology, List[Ontology]],
-        base_uri: Union[str, URIRef, Namespace] = "http://example.org/resource/"
+        ontologies: Optional[Union[Ontology, List[Ontology]]] = None,
+        base_uri: Optional[Union[str, URIRef, Namespace]] = "http://example.org/resource/"
     ):
-        self.ontologies = ontologies if isinstance(ontologies, list) else [ontologies]
-        self.base_uri = self.__build_base_uri(base_uri)
+        self.ontologies = (ontologies if isinstance(ontologies, list) else [ontologies]) if ontologies else None
+        self.base_uri = self.__build_base_uri(base_uri) if base_uri else None
         self.graph = Graph(bind_namespaces="rdflib")
         self.data = data
         self.resolver = OntologyResolver(

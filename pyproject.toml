@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "jrt"
-version = "0.2.0"
+version = "0.3.0"
 description = "A JSON to RDF transformer library that maps arbitrary JSON to RDF using heuristics and ontologies."
 authors = ["Mathieu 'Bloodbee' Dufour <mathieu@bloodbee.space>"]
 license = "MIT"

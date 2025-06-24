@@ -47,6 +47,8 @@ jrt convert data.json \
 
 ### 3 – Library usage
 
+You can find several examples in the [dedicated folder](/examples/)
+
 #### Building
 
 ```python
@@ -67,7 +69,7 @@ graph = builder.build()
 print(graph.serialize(format="turtle"))
 ```
 
-#### Add serialisations rules
+#### Add serialization rules
 
 This library offers the possibility of adding serialization rules to extend its capabilities and avoid the need for additional post-build work.
 
@@ -109,6 +111,14 @@ graph = builder.build()
 
 ---
 
+## Running the CLI from source
+
+```bash
+poetry run jrt convert examples/jsons/simple.json --output output.rdf
+```
+
+---
+
 ## Development
 
 ```bash
@@ -118,14 +128,6 @@ poetry install --with dev
 
 # run tests
 pytest -q
-```
-
----
-
-## Running the CLI from source
-
-```bash
-poetry run jrt convert examples/jsons/simple.json --output output.rdf
 ```
 
 ---
