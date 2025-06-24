@@ -1,4 +1,4 @@
-# JRT – JSON → RDF Transformer
+# JRT – JSON to RDF Transformer
 
 
 [![Tests](https://img.shields.io/github/actions/workflow/status/bloodbee/jrt/tests.yml)](https://github.com/bloodbee/jrt/actions/workflows/tests.yml)
@@ -47,6 +47,8 @@ jrt convert data.json \
 
 ### 3 – Library usage
 
+#### Building
+
 ```python
 from pathlib import Path
 import json
@@ -63,6 +65,46 @@ builder = GraphBuilder(data=data, ontologies=ontologies,
 
 graph = builder.build()
 print(graph.serialize(format="turtle"))
+```
+
+#### Add serialisations rules
+
+This library offers the possibility of adding serialization rules to extend its capabilities and avoid the need for additional post-build work.
+
+To do this, use the `add_rule` method:
+
+```python
+from rdflib import Literal, URIRef
+from jrt.builder import GraphBuilder
+from typing import Union, List
+
+json_data = {
+  "id": "thing123",
+  "name": "MyThing",
+  "custom": "This is a custom value",
+  "list": ["key1", "key2", "unknown"],
+  "dict": {
+    "valid": "This is valid"
+  }
+}
+
+def dynamic_rule(key, value) -> Union[tuple, List(tuple)]:
+  # Apply transformation to elements in value.
+  # You can return a tuple (ex: (key, new_value))
+  # or a list of triples (ex: [(s1, p1, new_value_1), (s2, p2, new_value_2)])
+  ...
+
+static_rule_uri = URIRef(...)
+static_rule_literal = Literal(..., datatype=...)
+
+builder = GraphBuilder(data=json_data, ...)
+
+# Add new rules
+builder.add_rule('custom', static_rule_literal)
+builder.add_rule('dict', static_rule_uri)
+builder.add_rule('list', dynamic_rule)
+
+graph = builder.build()
 ```
 
 ---

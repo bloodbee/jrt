@@ -4,7 +4,7 @@ from __future__ import annotations
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable, Mapping, MutableMapping, Sequence, Union
+from typing import Any, Mapping, Union, Callable
 from uuid import uuid4, uuid5, NAMESPACE_DNS
 
 from rdflib import Graph, Literal, Namespace, URIRef
@@ -38,6 +38,7 @@ class GraphBuilder:
             [o.graph for o in self.ontologies] if self.ontologies else []
         )
         self.label_index = {}
+        self.rules = {}
 
     def build(self) -> Graph:
         self._bind_namespaces()
@@ -59,6 +60,14 @@ class GraphBuilder:
                 continue
         return None
     
+    def add_rule(
+        self,
+        key: str,
+        value_or_callable: URIRef | Literal | Callable[[str, Any], URIRef | Literal]
+    ) -> None:
+        """Attach a rule to a specific JSON key, overriding its value."""
+        self.rules[key.lower()] = value_or_callable
+    
     def __build_base_uri(self, base_uri: Any) -> Namespace:
         if isinstance(base_uri, str) or isinstance(base_uri, URIRef):
             return Namespace(base_uri)
@@ -74,6 +83,24 @@ class GraphBuilder:
         key: str | None = None,
     ) -> URIRef:
         """Recursively convert *node* and attach it to *parent* if provided."""
+        if key:
+            rule = self.rules.get(key.lower())
+            if callable(rule):
+                # rule handles dict/list/primitive: must return (predicate, object) or a triple list
+                result = rule(key, node)
+                if result is not None:
+                    predicate = self._predicate_uri(key)
+                    if isinstance(result, tuple) and len(result) == 2:
+                        self.graph.add((parent, predicate, result[1]))
+                    elif isinstance(result, list):
+                        for triple in result:
+                            self.graph.add(triple)
+                    return parent
+
+            elif isinstance(rule, (URIRef, Literal)) and parent is not None:
+                predicate = self._predicate_uri(key)
+                self.graph.add((parent, predicate, rule))
+                return parent
 
         # -------- dict => resource --------------------------------------
         if isinstance(node, Mapping):
@@ -116,8 +143,8 @@ class GraphBuilder:
                 class_uri = self.resolver.resolve(node) or self._search_class_namespaces(node)
                 self.graph.add((parent, predicate, class_uri if class_uri else Literal(node)))
             else:
-                obj = self._literal_or_link(node, predicate)
                 if str(node) not in ['None', None, ""]:
+                    obj = self._literal_or_link(node, predicate)
                     self.graph.add((parent, predicate, obj))
         return parent or URIRef(f"{self.base_uri}{uuid4()}")
     

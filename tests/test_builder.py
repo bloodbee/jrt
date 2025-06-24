@@ -63,3 +63,43 @@ class TestGraphBuilder:
         ))
         assert len(cups) == 1
         assert (cups[0], RDFS.label, Literal("Cup")) in graph
+    
+    def test_add_rule(self, sample_data, base_uri):
+        fixed_literal = Literal("FORCED DESCRIPTION")
+
+        # Règle 2 : fonction qui retourne un URIRef basé sur la valeur
+        def dynamic_rule(key, value):
+            return (key, URIRef(f"http://custom.org/id/{value[0]['name']}"))
+
+        # Création du builder avec règles
+        builder = GraphBuilder(
+            data=sample_data,
+            ontologies=[],
+            base_uri=base_uri
+        )
+        builder.add_rule("description", fixed_literal)
+        builder.add_rule("stuffs", dynamic_rule)
+
+        graph = builder.build()
+
+        triples = list(graph)
+
+        print(triples)
+
+        # Test présence de la valeur forcée
+        assert any(
+            p == URIRef(RDFS.comment) and o == fixed_literal
+            for _, p, o in triples
+        )
+
+        # Test transformation dynamique via URIRef
+        assert any(
+            p == URIRef(f"{base_uri}stuffs") and o == URIRef("http://custom.org/id/Cup")
+            for _, p, o in triples
+        )
+
+        # Test que le champ "name" est toujours converti normalement
+        assert any(
+            p == URIRef(RDFS.label) and o == Literal("Teapot")
+            for _, p, o in triples
+        )
