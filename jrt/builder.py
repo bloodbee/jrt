@@ -106,7 +106,7 @@ class GraphBuilder:
         if isinstance(node, Mapping):
             subject = self._subject_uri(node)
             if parent is not None and key is not None:
-                graph.add((parent, self._predicate_uri(key), subject))
+                self.graph.add((parent, self._predicate_uri(key), subject))
 
             for k, v in node.items():
                 self._materialize(v, parent=subject, key=k)
