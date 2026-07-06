@@ -1,10 +1,10 @@
-import pytest
-from pathlib import Path
-from rdflib import Graph, URIRef, Literal
-from rdflib.namespace import Namespace, RDF, OWL, RDFS
 import json
-
 import tempfile
+from pathlib import Path
+
+import pytest
+from rdflib import Graph, Literal, URIRef
+from rdflib.namespace import OWL, RDF, RDFS, Namespace
 
 from jrt.ontology import Ontology, OntologyResolver
 
@@ -15,8 +15,13 @@ def example_graph() -> Graph:
     g = Graph()
     ontology_uri = URIRef("http://example.org/ont")
     g.add((ontology_uri, RDF.type, URIRef("http://www.w3.org/2002/07/owl#Ontology")))
-    g.add((ontology_uri, URIRef(
-        "http://www.w3.org/2000/01/rdf-schema#label"), Literal("Test Ontology")))
+    g.add(
+        (
+            ontology_uri,
+            URIRef("http://www.w3.org/2000/01/rdf-schema#label"),
+            Literal("Test Ontology"),
+        )
+    )
     return g
 
 
@@ -100,12 +105,7 @@ def sample_data():
         "name": "Teapot",
         "description": "A nice teapot",
         "type": "TeaPot",
-        "stuffs": [
-            {
-                "name": "Cup",
-                "description": "Porcelain cup"
-            }
-        ]
+        "stuffs": [{"name": "Cup", "description": "Porcelain cup"}],
     }
 
 

@@ -57,8 +57,7 @@ You can find several examples in the [dedicated folder](/examples/)
 ```python
 from pathlib import Path
 import json
-from jrt.ontology import OntologyLoader
-from jrt.builder import GraphBuilder
+from jrt import GraphBuilder, OntologyLoader
 
 loader = OntologyLoader()
 ontologies = loader.load(Path("path/to/ontologies"))
@@ -80,7 +79,7 @@ To do this, use the `add_rule` method:
 
 ```python
 from rdflib import Literal, URIRef
-from jrt.builder import GraphBuilder
+from jrt import GraphBuilder
 from typing import Union, List
 
 json_data = {

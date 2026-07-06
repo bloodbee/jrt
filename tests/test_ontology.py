@@ -1,7 +1,8 @@
-import pytest
-from rdflib import Graph, URIRef, Literal
-from rdflib.namespace import Namespace, RDF, RDFS, OWL
 from pathlib import Path
+
+import pytest
+from rdflib import Graph, Literal, URIRef
+from rdflib.namespace import OWL, RDF, RDFS, Namespace
 
 from jrt.ontology import Ontology, OntologyLoader, OntologyResolver
 
@@ -10,23 +11,26 @@ class TestOntology:
     """Unit tests for the Ontology dataclass."""
 
     def test_is_ontology(self, ontology) -> None:
-        assert isinstance(
-            ontology, Ontology), "given ontology is not an Ontology instance"
+        assert isinstance(ontology, Ontology), "given ontology is not an Ontology instance"
 
     def test_graph_is_rdflib_graph(self, ontology) -> None:
         assert isinstance(
-            ontology.graph, Graph), "graph attribute should be an rdflib.Graph instance"
+            ontology.graph, Graph
+        ), "graph attribute should be an rdflib.Graph instance"
 
     def test_source_is_path(self, ontology) -> None:
         assert isinstance(
-            ontology.source, Path), "source attribute should be a pathlib.Path instance"
+            ontology.source, Path
+        ), "source attribute should be a pathlib.Path instance"
         assert ontology.source.exists(), "source file should exist on disk"
 
     def test_graph_contains_ontology_declaration(self, ontology) -> None:
-        ont_triples = list(ontology.graph.triples(
-            (None, RDF.type, URIRef("http://www.w3.org/2002/07/owl#Ontology"))))
-        assert len(
-            ont_triples) == 1, "graph should contain exactly one owl:Ontology declaration"
+        ont_triples = list(
+            ontology.graph.triples(
+                (None, RDF.type, URIRef("http://www.w3.org/2002/07/owl#Ontology"))
+            )
+        )
+        assert len(ont_triples) == 1, "graph should contain exactly one owl:Ontology declaration"
 
     def test_graph_label(self, ontology) -> None:
         label_triples = list(
@@ -34,8 +38,9 @@ class TestOntology:
                 (None, URIRef("http://www.w3.org/2000/01/rdf-schema#label"), None)
             )
         )
-        assert any(str(o) == "Test Ontology" for _, _,
-                   o in label_triples), "ontology should have rdfs:label 'Test Ontology'"
+        assert any(
+            str(o) == "Test Ontology" for _, _, o in label_triples
+        ), "ontology should have rdfs:label 'Test Ontology'"
 
 
 class TestOntologyLoader:
@@ -88,6 +93,26 @@ class TestOntologyLoader:
         loader = OntologyLoader()
         with pytest.raises(ValueError):
             loader.load(Path("/non/existing/path"))
+
+    def test_corrupted_file_raises(self, tmp_path):
+        bad = tmp_path / "broken.owl"
+        bad.write_text("<<< this is not valid rdf >>>")
+        loader = OntologyLoader()
+        with pytest.raises(Exception):
+            loader.load(bad)
+
+    def test_corrupted_file_in_directory_is_skipped(self, sample_ontology_file, tmp_path):
+        dir_path = tmp_path / "mixed"
+        dir_path.mkdir()
+        # one valid ontology + one broken file
+        (dir_path / sample_ontology_file.name).write_text(sample_ontology_file.read_text())
+        (dir_path / "broken.owl").write_text("<<< not valid >>>")
+
+        loader = OntologyLoader()
+        results = loader.load(dir_path)
+
+        assert isinstance(results, list)
+        assert len(results) == 1  # broken file skipped, valid one kept
 
 
 class TestOntologyResolver:

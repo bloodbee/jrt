@@ -1,19 +1,15 @@
 import pytest
-from rdflib import Graph, URIRef, Literal
-from rdflib.namespace import Namespace, RDFS, RDF, OWL
+from rdflib import Graph, Literal, URIRef
+from rdflib.namespace import OWL, RDF, RDFS, Namespace
 
-from jrt.ontology import Ontology
 from jrt.builder import GraphBuilder
+from jrt.ontology import Ontology
 
 
 class TestGraphBuilder:
 
     def test_build_graph_with_ontology(self, sample_data, teapot_ontology, base_uri):
-        builder = GraphBuilder(
-            data=sample_data,
-            ontologies=[teapot_ontology],
-            base_uri=base_uri
-        )
+        builder = GraphBuilder(data=sample_data, ontologies=[teapot_ontology], base_uri=base_uri)
         graph = builder.build()
 
         subject_uri = None
@@ -24,25 +20,17 @@ class TestGraphBuilder:
         assert subject_uri is not None
 
         # Ensure class type was correctly resolved from ontology
-        assert (
-            subject_uri,
-            RDF.type, URIRef("http://example.org/stuff#TeaPot")
-        ) in graph
+        assert (subject_uri, RDF.type, URIRef("http://example.org/stuff#TeaPot")) in graph
 
         # Ensure nested object was created and linked
-        cups = list(graph.objects(
-            subject=subject_uri,
-            predicate=URIRef("http://example.org/stuff#stuffs")
-        ))
+        cups = list(
+            graph.objects(subject=subject_uri, predicate=URIRef("http://example.org/stuff#stuffs"))
+        )
         assert len(cups) == 1
         assert (cups[0], RDFS.label, Literal("Cup")) in graph
 
     def test_build_graph_without_ontology(self, sample_data, base_uri):
-        builder = GraphBuilder(
-            data=sample_data,
-            ontologies=[],
-            base_uri=base_uri
-        )
+        builder = GraphBuilder(data=sample_data, ontologies=[], base_uri=base_uri)
         graph = builder.build()
 
         # Class fallback should use example.org namespace
@@ -53,17 +41,17 @@ class TestGraphBuilder:
 
         assert subject_uri is not None
         assert (subject_uri, RDF.type, OWL.Thing) in graph or (
-            subject_uri, RDF.type, Literal("TeaPot")) in graph
+            subject_uri,
+            RDF.type,
+            Literal("TeaPot"),
+        ) in graph
 
         # Predicate fallback
         fallback_pred = URIRef("http://example.org/resource/stuffs")
-        cups = list(graph.objects(
-            subject=subject_uri,
-            predicate=fallback_pred
-        ))
+        cups = list(graph.objects(subject=subject_uri, predicate=fallback_pred))
         assert len(cups) == 1
         assert (cups[0], RDFS.label, Literal("Cup")) in graph
-    
+
     def test_add_rule(self, sample_data, base_uri):
         fixed_literal = Literal("FORCED DESCRIPTION")
 
@@ -72,11 +60,7 @@ class TestGraphBuilder:
             return (key, URIRef(f"http://custom.org/id/{value[0]['name']}"))
 
         # Création du builder avec règles
-        builder = GraphBuilder(
-            data=sample_data,
-            ontologies=[],
-            base_uri=base_uri
-        )
+        builder = GraphBuilder(data=sample_data, ontologies=[], base_uri=base_uri)
         builder.add_rule("description", fixed_literal)
         builder.add_rule("stuffs", dynamic_rule)
 
@@ -87,10 +71,7 @@ class TestGraphBuilder:
         print(triples)
 
         # Test présence de la valeur forcée
-        assert any(
-            p == URIRef(RDFS.comment) and o == fixed_literal
-            for _, p, o in triples
-        )
+        assert any(p == URIRef(RDFS.comment) and o == fixed_literal for _, p, o in triples)
 
         # Test transformation dynamique via URIRef
         assert any(
@@ -99,7 +80,41 @@ class TestGraphBuilder:
         )
 
         # Test que le champ "name" est toujours converti normalement
-        assert any(
-            p == URIRef(RDFS.label) and o == Literal("Teapot")
-            for _, p, o in triples
+        assert any(p == URIRef(RDFS.label) and o == Literal("Teapot") for _, p, o in triples)
+
+    def test_add_rule_returning_triple_list(self, sample_data, base_uri):
+        s = URIRef("http://custom.org/s")
+        p = URIRef("http://custom.org/p")
+        o = Literal("explicit")
+
+        def triples_rule(key, value):
+            return [(s, p, o)]
+
+        builder = GraphBuilder(data=sample_data, ontologies=[], base_uri=base_uri)
+        builder.add_rule("stuffs", triples_rule)
+        graph = builder.build()
+
+        # The explicit triple returned by the rule must be present verbatim
+        assert (s, p, o) in graph
+
+    def test_datatype_property_resolved_from_ontology(self, base_uri):
+        EX = Namespace("http://example.org/stuff#")
+        onto_graph = Graph()
+        # "color" is a datatype property -> must be used as predicate over the
+        # base-URI fallback that a plain unknown key would get.
+        onto_graph.add((EX.color, RDF.type, OWL.DatatypeProperty))
+        onto_graph.add((EX.color, RDFS.label, Literal("color")))
+
+        data = {"id": "x1", "name": "Teapot", "color": "blue"}
+        builder = GraphBuilder(
+            data=data,
+            ontologies=[Ontology(graph=onto_graph)],
+            base_uri=base_uri,
         )
+        graph = builder.build()
+
+        # The datatype property from the ontology is used as the predicate,
+        # and the value stays a literal (datatype props are not object-linked).
+        assert (None, EX.color, Literal("blue")) in graph
+        # And it must NOT have fallen back to the base-URI predicate.
+        assert (None, URIRef(f"{base_uri}color"), Literal("blue")) not in graph

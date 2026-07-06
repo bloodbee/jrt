@@ -1,8 +1,9 @@
 import json
-import pytest
 from pathlib import Path
+
+import pytest
 from rdflib import Graph, Literal
-from rdflib.namespace import RDFS, RDF
+from rdflib.namespace import RDF, RDFS
 from typer.testing import CliRunner
 
 from jrt.cli import app
@@ -10,11 +11,16 @@ from jrt.cli import app
 runner = CliRunner()
 
 
-@pytest.mark.parametrize("format_arg, rdflib_format", [
-    ("xml", "xml"),
-    ("ttl", "turtle"),
-])
-def test_convert_command_with_ontology(json_input, teapot_ontology_file, tmp_path, format_arg, rdflib_format):
+@pytest.mark.parametrize(
+    "format_arg, rdflib_format",
+    [
+        ("xml", "xml"),
+        ("ttl", "turtle"),
+    ],
+)
+def test_convert_command_with_ontology(
+    json_input, teapot_ontology_file, tmp_path, format_arg, rdflib_format
+):
     output = tmp_path / f"output.{format_arg}"
 
     result = runner.invoke(
@@ -22,11 +28,15 @@ def test_convert_command_with_ontology(json_input, teapot_ontology_file, tmp_pat
         [
             "convert",
             str(json_input),
-            "--output", str(output),
-            "--ontology", str(teapot_ontology_file),
-            "--base-uri", "http://example.org/resource/",
-            "--format", format_arg,
-        ]
+            "--output",
+            str(output),
+            "--ontology",
+            str(teapot_ontology_file),
+            "--base-uri",
+            "http://example.org/resource/",
+            "--format",
+            format_arg,
+        ],
     )
 
     assert result.exit_code == 0
@@ -44,10 +54,13 @@ def test_convert_command_with_ontology(json_input, teapot_ontology_file, tmp_pat
     assert (s, RDF.type, None) in g
 
 
-@pytest.mark.parametrize("format_arg, rdflib_format", [
-    ("xml", "xml"),
-    ("ttl", "turtle"),
-])
+@pytest.mark.parametrize(
+    "format_arg, rdflib_format",
+    [
+        ("xml", "xml"),
+        ("ttl", "turtle"),
+    ],
+)
 def test_convert_command_without_ontology(json_input, tmp_path, format_arg, rdflib_format):
     output = tmp_path / f"out.{format_arg}"
 
@@ -56,9 +69,11 @@ def test_convert_command_without_ontology(json_input, tmp_path, format_arg, rdfl
         [
             "convert",
             str(json_input),
-            "--output", str(output),
-            "--format", format_arg,
-        ]
+            "--output",
+            str(output),
+            "--format",
+            format_arg,
+        ],
     )
 
     assert result.exit_code == 0

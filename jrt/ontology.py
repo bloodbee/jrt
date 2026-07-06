@@ -1,10 +1,11 @@
-from dataclasses import dataclass
-from typing import List, Union, Iterable, Optional, Dict, Set
-from pathlib import Path
 import logging
-from rdflib import Graph, URIRef, Literal
-from rdflib.namespace import RDF, RDFS, OWL
 from collections import defaultdict
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Dict, Iterable, List, Optional, Set, Union
+
+from rdflib import Graph, Literal, URIRef
+from rdflib.namespace import OWL, RDF, RDFS
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,7 @@ ONTOLOGY_SUFFIXES = {".rdf", ".owl", ".xml", ".ttl"}
 @dataclass
 class Ontology:
     """Dataclass representing an Ontology model with its graph and source."""
+
     graph: Graph
     source: Optional[Path] = None
 
@@ -28,14 +30,11 @@ class OntologyLoader:
         elif source.is_dir():
             return self._load_directory(source)
         else:
-            raise ValueError(
-                f"Source path {source} is neither file nor directory")
+            raise ValueError(f"Source path {source} is neither file nor directory")
 
     @classmethod
     def merge_ontologies(
-        cls,
-        ontologies: Union[Ontology, List[Ontology]],
-        source: Path = None
+        cls, ontologies: Union[Ontology, List[Ontology]], source: Optional[Path] = None
     ) -> Ontology:
         merged_graph = Graph()
         iterable = ontologies if isinstance(ontologies, list) else [ontologies]
@@ -71,6 +70,7 @@ class OntologyResolver:
         self._label_to_uri: Dict[str, Set[URIRef]] = defaultdict(set)
         self._classes: Set[URIRef] = set()
         self._object_props: Set[URIRef] = set()
+        self._datatype_props: Set[URIRef] = set()
         self._build_index(graphs)
 
     def resolve(self, label: str) -> URIRef | None:
@@ -88,25 +88,40 @@ class OntologyResolver:
     def is_object_property(self, uri: URIRef) -> bool:
         return uri in self._object_props
 
+    def is_datatype_property(self, uri: URIRef) -> bool:
+        return uri in self._datatype_props
+
+    def is_property(self, uri: URIRef) -> bool:
+        """True if *uri* is any kind of known property (object or datatype)."""
+        return uri in self._object_props or uri in self._datatype_props
+
     def _build_index(self, graphs: Iterable[Graph]) -> None:
         for g in graphs:
             for s, p, o in g:
+                # only URIRef subjects are referenceable in the output graph
+                if not isinstance(s, URIRef):
+                    continue
+
                 # 1) rdfs:label mapping
                 if p == RDFS.label and isinstance(o, Literal):
                     self._label_to_uri[str(o).lower()].add(s)
 
                 # 2) keep localname as label too
-                if isinstance(s, URIRef):
-                    localname = self._local_name(s)
-                    if localname:
-                        self._label_to_uri[localname.lower()].add(s)
+                localname = self._local_name(s)
+                if localname:
+                    self._label_to_uri[localname.lower()].add(s)
 
-                # 3) class / object property typology
+                # 3) class / property typology
                 if p == RDF.type:
                     if o == OWL.Class:
                         self._classes.add(s)
                     elif o == OWL.ObjectProperty:
                         self._object_props.add(s)
+                    elif o == OWL.DatatypeProperty:
+                        self._datatype_props.add(s)
+                    elif o == RDF.Property:
+                        # plain rdf:Property with no OWL typing -> treat as datatype
+                        self._datatype_props.add(s)
 
     @staticmethod
     def _local_name(uri: URIRef) -> str | None:
