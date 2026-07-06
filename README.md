@@ -13,6 +13,7 @@
 - **Ontology‑aware mapping** – classes & properties found in your OWL/RDFS ontologies are resolved first; public namespaces (FOAF, DC, …) are used only as fallback.
 - **UUID subject strategy** – stable UUID‑v5 URIs when an id key is present, random UUID‑v4 otherwise.
 - **Heuristics out of the box** – automatic rdfs:label, rdfs:comment, list handling, object‑property linking by literal label.
+- **Smart literal datatypes** – string values that are ISO dates, date‑times, booleans or HTTP(S) URIs are typed as `xsd:date`, `xsd:dateTime`, `xsd:boolean`, `xsd:anyURI`. Numeric‑looking strings (ids, zip codes) are left untouched. Disable with `detect_datatypes=False` / `--no-detect-datatypes`.
 - **Clean Typer CLI** – jrt convert input.json --ontology path/ --output out.rdf.
 - **Extensible library API** – integrate OntologyLoader, OntologyResolver, or GraphBuilder directly in Python code.
 - **100 % PyPI‑ready** – MIT‑licensed, tested with pytest. The core library depends only on `rdflib`; the CLI adds `typer`, installed via the `cli` extra.

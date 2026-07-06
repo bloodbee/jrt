@@ -11,6 +11,7 @@ from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import DC, DCTERMS, FOAF, OWL, RDF, RDFS, SKOS, XSD
 
 from .constants import *
+from .datatypes import to_literal
 from .ontology import Ontology, OntologyResolver
 
 # Namespaces considered for *predicate* resolution (XSD intentionally omitted)
@@ -28,10 +29,12 @@ class GraphBuilder:
         data: Any,
         ontologies: Optional[Union[Ontology, List[Ontology]]] = None,
         base_uri: Optional[Union[str, URIRef, Namespace]] = "http://example.org/resource/",
+        detect_datatypes: bool = True,
     ):
         self.ontologies = (
             (ontologies if isinstance(ontologies, list) else [ontologies]) if ontologies else None
         )
+        self.detect_datatypes = detect_datatypes
         self.base_uri = self.__build_base_uri(base_uri) if base_uri else None
         self.graph = Graph(bind_namespaces="rdflib")
         self.data = data
@@ -167,7 +170,7 @@ class GraphBuilder:
                 self.graph.add((linked, RDFS.label, Literal(value)))
                 self.label_index[value.lower()] = linked
             return linked
-        return Literal(value)
+        return to_literal(value, self.detect_datatypes)
 
     def _subject_uri(self, obj: Mapping[str, Any]) -> URIRef:
         id_key = next((k for k in obj if k.lower() in ID_KEYS), None)

@@ -1,6 +1,6 @@
 import pytest
 from rdflib import Graph, Literal, URIRef
-from rdflib.namespace import OWL, RDF, RDFS, Namespace
+from rdflib.namespace import OWL, RDF, RDFS, XSD, Namespace
 
 from jrt.builder import GraphBuilder
 from jrt.ontology import Ontology
@@ -118,3 +118,35 @@ class TestGraphBuilder:
         assert (None, EX.color, Literal("blue")) in graph
         # And it must NOT have fallen back to the base-URI predicate.
         assert (None, URIRef(f"{base_uri}color"), Literal("blue")) not in graph
+
+    def test_smart_datatypes_are_inferred(self, base_uri):
+        data = {
+            "id": "e1",
+            "name": "Event",
+            "startDate": "2024-01-15",
+            "createdAt": "2024-01-15T10:30:00Z",
+            "homepage": "https://example.org/e1",
+            "active": "true",
+            "reference": "12345",  # numeric-looking -> must stay a plain string
+        }
+        graph = GraphBuilder(data=data, ontologies=[], base_uri=base_uri).build()
+
+        # rdflib canonicalizes typed lexical forms, so assert on the datatypes
+        datatypes = {o.datatype for _, _, o in graph if isinstance(o, Literal)}
+        assert XSD.date in datatypes
+        assert XSD.dateTime in datatypes
+        assert XSD.anyURI in datatypes
+        assert XSD.boolean in datatypes
+
+        # numeric-looking reference stays an untyped string
+        ref = next(o for _, _, o in graph if isinstance(o, Literal) and str(o) == "12345")
+        assert ref.datatype is None
+
+    def test_smart_datatypes_can_be_disabled(self, base_uri):
+        data = {"id": "e1", "name": "Event", "startDate": "2024-01-15"}
+        graph = GraphBuilder(
+            data=data, ontologies=[], base_uri=base_uri, detect_datatypes=False
+        ).build()
+
+        obj = next(o for _, _, o in graph if isinstance(o, Literal) and str(o) == "2024-01-15")
+        assert obj.datatype is None

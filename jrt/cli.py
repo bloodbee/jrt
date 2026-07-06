@@ -36,6 +36,11 @@ def convert(
     format: str = typer.Option(
         "xml", help="RDF serialization format (e.g., xml, ttl, nt, json-ld)"
     ),
+    detect_datatypes: bool = typer.Option(
+        True,
+        "--detect-datatypes/--no-detect-datatypes",
+        help="Infer XSD datatypes (date, dateTime, boolean, anyURI) from string values",
+    ),
 ):
     """
     Convert a JSON in RDF/XML.
@@ -54,7 +59,12 @@ def convert(
     with input.open() as f:
         data = json.load(f)
 
-    builder = GraphBuilder(data=data, ontologies=ontologies, base_uri=base_uri)
+    builder = GraphBuilder(
+        data=data,
+        ontologies=ontologies,
+        base_uri=base_uri,
+        detect_datatypes=detect_datatypes,
+    )
     graph = builder.build()
 
     graph.serialize(destination=output, format=fmt)
