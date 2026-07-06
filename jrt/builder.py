@@ -4,7 +4,7 @@ from __future__ import annotations
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping, Union, Callable
+from typing import Any, Mapping, Union, Callable, Optional, List
 from uuid import uuid4, uuid5, NAMESPACE_DNS
 
 from rdflib import Graph, Literal, Namespace, URIRef
@@ -17,9 +17,8 @@ from .constants import *
 PREDICATE_NAMESPACES = [FOAF, SKOS, DCTERMS, DC, RDFS]
 # Namespaces considered for *class* resolution (OWL kept)
 CLASS_NAMESPACES = PREDICATE_NAMESPACES + [OWL]
-
-warnings.filterwarnings(
-    "ignore", message=r".*is not defined in namespace XSD", category=UserWarning)
+# Full catalogue used for generic public-term lookups
+NAMESPACE_CATALOGUE = CLASS_NAMESPACES
 
 
 class GraphBuilder:
@@ -41,14 +40,20 @@ class GraphBuilder:
         self.rules = {}
 
     def build(self) -> Graph:
-        self._bind_namespaces()
-        root_subject = self._materialize(self.data)
-        self.graph.add((root_subject, RDF.type, OWL.Thing))
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message=r".*is not defined in namespace XSD",
+                category=UserWarning,
+            )
+            self._bind_namespaces()
+            root_subject = self._materialize(self.data)
+            self.graph.add((root_subject, RDF.type, OWL.Thing))
 
-        # Add external ontologies if provided
-        if self.ontologies:
-            for onto in self.ontologies:
-                self.graph += onto.graph
+            # Add external ontologies if provided
+            if self.ontologies:
+                for onto in self.ontologies:
+                    self.graph += onto.graph
         return self.graph
     
     @staticmethod
@@ -86,12 +91,13 @@ class GraphBuilder:
         if key:
             rule = self.rules.get(key.lower())
             if callable(rule):
-                # rule handles dict/list/primitive: must return (predicate, object) or a triple list
+                # rule handles dict/list/primitive: must return (key, object) or a triple list
                 result = rule(key, node)
                 if result is not None:
-                    predicate = self._predicate_uri(key)
                     if isinstance(result, tuple) and len(result) == 2:
-                        self.graph.add((parent, predicate, result[1]))
+                        if parent is not None:
+                            predicate = self._predicate_uri(result[0])
+                            self.graph.add((parent, predicate, result[1]))
                     elif isinstance(result, list):
                         for triple in result:
                             self.graph.add(triple)

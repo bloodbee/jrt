@@ -13,14 +13,17 @@ packages = [{ include = "jrt" }]
 [tool.poetry.dependencies]
 python = "^3.10"
 rdflib = "^7.0.0"
-jsonpath-ng = "^1.6.0"
-typer = "*"
+typer = { version = "*", optional = true }
+
+[tool.poetry.extras]
+cli = ["typer"]
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4.1"
 black = "^24.4.2"
 isort = "^5.13.2"
 mypy = "^1.10.0"
+typer = "*"
 
 [tool.poetry.scripts]
 jrt = "jrt.cli:app"
@@ -28,7 +31,7 @@ jrt = "jrt.cli:app"
 [tool.pytest.ini_options]
 asyncio_default_fixture_loop_scope = "function"
 python_files = "test_*.py"
-testpaths = "spec"
+testpaths = "tests"
 filterwarnings = [
     "ignore::pytest.PytestUnraisableExceptionWarning",
     "ignore::RuntimeWarning",

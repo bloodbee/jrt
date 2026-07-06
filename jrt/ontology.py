@@ -1,13 +1,15 @@
 from dataclasses import dataclass
-from typing import List, Union, Iterable, Optional
+from typing import List, Union, Iterable, Optional, Dict, Set
 from pathlib import Path
 import logging
 from rdflib import Graph, URIRef, Literal
 from rdflib.namespace import RDF, RDFS, OWL
 from collections import defaultdict
-from pathlib import Path
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
+
+# File extensions recognized when loading ontologies from a directory
+ONTOLOGY_SUFFIXES = {".rdf", ".owl", ".xml", ".ttl"}
 
 
 @dataclass
@@ -47,14 +49,19 @@ class OntologyLoader:
             g.parse(file_path.as_posix())
             return Ontology(graph=g, source=file_path)
         except Exception as e:
-            logger.error(e)
+            logger.error("Failed to load ontology from %s: %s", file_path, e)
+            raise
 
     def _load_directory(self, dir_path: Path) -> List[Ontology]:
         ontologies = []
         for file in dir_path.rglob("*"):
-            if file.is_file() and file.suffix.lower() in [".rdf", ".owl", ".xml"]:
-                ontologies.append(self._load_file(file))
-        return [onto for onto in ontologies if onto]
+            if file.is_file() and file.suffix.lower() in ONTOLOGY_SUFFIXES:
+                try:
+                    ontologies.append(self._load_file(file))
+                except Exception:
+                    # Skip individual files that fail to parse, keep the rest
+                    continue
+        return ontologies
 
 
 class OntologyResolver:
@@ -71,8 +78,8 @@ class OntologyResolver:
         key = label.lower()
         uris = self._label_to_uri.get(key)
         if uris:
-            # deterministic order not guaranteed, but fine for now
-            return next(iter(uris))
+            # sort for deterministic, reproducible resolution across runs
+            return min(uris)
         return None
 
     def is_class(self, uri: URIRef) -> bool:

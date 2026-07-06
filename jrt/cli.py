@@ -1,7 +1,14 @@
-import typer
 from pathlib import Path
 import logging
 import json
+
+try:
+    import typer
+except ImportError as exc:  # pragma: no cover
+    raise ImportError(
+        "The JRT command-line interface requires 'typer'. "
+        "Install it with: pip install 'jrt[cli]'"
+    ) from exc
 
 from .ontology import OntologyLoader
 from .builder import GraphBuilder

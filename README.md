@@ -15,7 +15,7 @@
 - **Heuristics out of the box** – automatic rdfs:label, rdfs:comment, list handling, object‑property linking by literal label.
 - **Clean Typer CLI** – jrt convert input.json --ontology path/ --output out.rdf.
 - **Extensible library API** – integrate OntologyLoader, OntologyResolver, or GraphBuilder directly in Python code.
-- **100 % PyPI‑ready** – MIT‑licensed, tested with pytest, zero runtime dependencies outside rdflib & typer.
+- **100 % PyPI‑ready** – MIT‑licensed, tested with pytest. The core library depends only on `rdflib`; the CLI adds `typer`, installed via the `cli` extra.
 
 ---
 
@@ -24,8 +24,11 @@
 ### 1 – Install
 
 ```bash
-# PyPI:
+# PyPI (library only):
 pip install jrt
+
+# With the command-line interface:
+pip install 'jrt[cli]'
 
 # Or with Poetry:
 poetry add jrt
